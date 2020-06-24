@@ -1,0 +1,101 @@
+version: "3.1"
+services:
+
+  ######  AKASHIC SECTION #####
+  mongo_service:
+    image: mongo:4.2.6-bionic
+    container_name: akashic_mongo
+    environment: 
+      - MONGO_INITDB_DATABASE=akashic
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=devdevdev
+    volumes: 
+      - ./services/mongo_service/data:/data/db
+    ports:
+      - '27017-27019:27017-27019'
+    networks:
+      sse_testing_net:
+        ipv4_address: 172.33.1.2
+
+
+  akashic_service:
+    container_name: akashic
+    build:
+      context: ./../akashic
+      dockerfile: Dockerfile
+    #command: gunicorn --bind 172.33.1.3:5000 'wsgi:build_wsgi_prod("${MONGO_USER}", "${MONGO_PASSWORD}", "172.33.1.2:27017", "${MONGO_DB}")'
+    #command: python3 -u wsgi.py
+    ports:
+      - '5000:5000'
+    networks:
+      sse_testing_net:
+        ipv4_address: 172.33.1.3
+
+
+  akashic_webclient_service:
+    container_name: akashic_webclient
+    stdin_open: true
+    build:
+      context: ./../akashic-webclient
+      dockerfile: Dockerfile
+    ports:
+      - '80:80'
+    networks:
+      sse_testing_net:
+        ipv4_address: 172.33.1.4
+
+
+
+  #### LARAVEL SSE EXAMPLE SECTION
+  postgres_service:
+    image: postgres:12.2-alpine
+    container_name: sse_postgres
+    volumes:
+      - "./services/postgres_service:/var/lib/postgresql/data"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    networks:
+      sse_testing_net:
+        ipv4_address: 172.33.1.5
+
+                
+  php_fpm_service:
+    container_name: sse_php_fpm
+    build:
+      context: ./services/backend_service
+      dockerfile: Dockerfile
+    working_dir: /application
+    volumes:
+      - ./../student-service-example:/application
+      - ./services/backend_service/php-ini-overrides.ini:/etc/php/7.3/fpm/conf.d/99-overrides.ini
+    ports:
+      - "9000:9000"
+    networks:
+      sse_testing_net:
+        ipv4_address: 172.33.1.6
+
+
+  backend_nginx_service:
+    image: nginx:1.17.9-alpine
+    container_name: sse_nginx
+    working_dir: /application
+    volumes:
+      - ./../student-service-example:/application
+      - ./services/backend_service/nginx.conf:/etc/nginx/conf.d/nginx.conf
+    ports:
+      - "8080:8080"
+    networks:
+      sse_testing_net:
+        ipv4_address: 172.33.1.7
+
+    
+networks:
+  sse_testing_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.33.0.0/16
