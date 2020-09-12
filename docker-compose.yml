@@ -70,7 +70,7 @@ services:
       dockerfile: Dockerfile
     working_dir: /application
     volumes:
-      - ./../student-service-example:/application
+      - ./../student-service-example-api:/application
       - ./services/backend_service/php-ini-overrides.ini:/etc/php/7.3/fpm/conf.d/99-overrides.ini
     ports:
       - "9000:9000"
@@ -84,7 +84,7 @@ services:
     container_name: sse_nginx
     working_dir: /application
     volumes:
-      - ./../student-service-example:/application
+      - ./../student-service-example-api:/application
       - ./services/backend_service/nginx.conf:/etc/nginx/conf.d/nginx.conf
     ports:
       - "8080:8080"
